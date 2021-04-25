@@ -8,5 +8,7 @@ Make sure you do Steps 1 and 2 in this [guide](https://aws.amazon.com/getting-st
 ## Usage
 
 ```bash
-./src/run-speed-test.sh
+sudo cp ./src/run-speed-test.sh /etc/cron.hourly/
 ```
+In the above example the script will execute every hour.
+
