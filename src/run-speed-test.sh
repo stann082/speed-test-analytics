@@ -12,11 +12,6 @@ while test $# -gt 0; do
     shift
 done
 
-if [ "$SPEED_TEST_S3_BUCKET" == "" ]; then
-    echo "Environment variable SPEED_TEST_S3_BUCKET isn't set... Please, run this script again with --list-buckets argument, find your S3 bucket and set the nevironment variable in your .bashrc"
-    exit 1
-fi
-
 echo "Retrieving account id..."
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 REGION="us-west-2"
