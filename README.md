@@ -6,7 +6,7 @@ This tool is to provide stats for your internet speed.
 Make sure you do Steps 1 and 2 in this [guide](https://aws.amazon.com/getting-started/hands-on/backup-to-s3-cli/)
 
 ## Usage
-
+Simply copy the shell script to one of the cron directories (depending on how often you want it to run)
 ```bash
 sudo cp ./src/run-speed-test.sh /etc/cron.hourly/
 ```
