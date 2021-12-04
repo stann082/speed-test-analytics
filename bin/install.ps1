@@ -36,4 +36,7 @@ if (-Not $SPEED_TEST_MAIN_DIR_EXISTS -or ($DOWNLOAD_LATEST -eq "--download-lates
 }
 
 echo "Now the other stuff..."
-
+# Download https://github.com/winsw/winsw/releases/download/v2.11.0/WinSW-x64.exe
+# Extract WinSW
+# Setup config file
+# 
