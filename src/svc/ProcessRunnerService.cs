@@ -1,14 +1,13 @@
 using System.Diagnostics;
-using System.IO;
 
-namespace speed_test
+namespace service
 {
-    public class ProcessRunner
+    public class ProcessRunnerService
     {
 
         #region Constructors
 
-        public ProcessRunner(string programPath, string arguments)
+        public ProcessRunnerService(string programPath, string arguments)
         {
             ProgramPath = programPath;
             Arguments = arguments;

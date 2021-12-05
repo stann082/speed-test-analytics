@@ -1,71 +1,53 @@
-using Amazon.DynamoDBv2;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using service;
 using System;
 using System.IO;
-using System.Linq;
-using System.Threading;
 
 namespace speed_test
 {
     public class Program
     {
 
-        #region Constants
-
-        private const string TABLE_NAME = "SpeedTestAnalytics";
-
-        #endregion
-
         #region Main Method
 
         public static void Main(string[] args)
         {
-            string speedTestFile = "speedtest.exe";
-            if (!File.Exists(speedTestFile))
+            try
             {
-                return;
+                IServiceCollection services = ConfigureServices();
+                ServiceProvider serviceProvider = services.BuildServiceProvider();
+                serviceProvider.GetService<Application>().Run();
             }
-
-            IAwsDynamoDbClient client = new AwsDynamoDbClient();
-            client.CreateTable(TABLE_NAME);
-
-            WaitForTableToActivate(client);
-
-            string arguments = "--format=json";
-            if (args.Length > 0)
+            catch (Exception)
             {
-                string formatArgument = args.FirstOrDefault(a => a.Contains("--format"));
-                if (!string.IsNullOrEmpty(formatArgument))
-                {
-                    arguments = formatArgument;
-                }
+                Console.WriteLine("An un expected error has occurred...");
             }
-
-            string machineId = $"{Environment.MachineName} ({Environment.OSVersion.Platform})";
-            Console.WriteLine($"Running a speed test for {machineId}...");
-            ProcessRunner process = new ProcessRunner(speedTestFile, arguments);
-            process.Run();
-            if (string.IsNullOrEmpty(process.StandardOutput))
-            {
-                Console.WriteLine("Speed test process did not yield any results... Please check logs for details.");
-                return;
-            }
-
-            Console.WriteLine($"Adding speed test result entry to the {TABLE_NAME} table...");
-            client.PutItem(TABLE_NAME, machineId, process.StandardOutput);
-            Console.WriteLine("An entry had been successfully added!");
         }
 
         #endregion
 
         #region Helper Methods
 
-        private static void WaitForTableToActivate(IAwsDynamoDbClient client)
+        public static IConfiguration LoadConfiguration()
         {
-            while (client.DescribeTable(TABLE_NAME).TableStatus != TableStatus.ACTIVE)
-            {
-                Console.WriteLine($"Waiting for the table {TABLE_NAME} to activate...");
-                Thread.Sleep(5000);
-            }
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            return builder.Build();
+        }
+
+        private static IServiceCollection ConfigureServices()
+        {
+            IServiceCollection services = new ServiceCollection();
+
+            IConfiguration config = LoadConfiguration();
+            services.AddSingleton(config);
+            services.AddTransient<IAwsDynamoDbService, AwsDynamoDbService>();
+            services.AddTransient<Application>();
+
+            return services;
         }
 
         #endregion

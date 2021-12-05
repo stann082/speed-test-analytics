@@ -1,8 +1,8 @@
 ﻿using Amazon.DynamoDBv2.Model;
 
-namespace speed_test
+namespace service
 {
-    public interface IAwsDynamoDbClient
+    public interface IAwsDynamoDbService
     {
 
         void CreateTable(string tableName);

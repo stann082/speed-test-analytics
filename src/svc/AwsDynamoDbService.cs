@@ -1,13 +1,10 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
-namespace speed_test
+namespace service
 {
-    public class AwsDynamoDbClient : IAwsDynamoDbClient
+    public class AwsDynamoDbService : IAwsDynamoDbService
     {
 
         #region Constants
@@ -21,7 +18,7 @@ namespace speed_test
 
         #region Constructors
 
-        public AwsDynamoDbClient()
+        public AwsDynamoDbService()
         {
             Client = new AmazonDynamoDBClient();
         }
