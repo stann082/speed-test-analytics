@@ -1,13 +1,10 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
-namespace speed_test
+namespace service
 {
-    public class AwsDynamoDbClient : IAwsDynamoDbClient
+    public class AwsDynamoDbService : IAwsDynamoDbService
     {
 
         #region Constants
@@ -21,7 +18,7 @@ namespace speed_test
 
         #region Constructors
 
-        public AwsDynamoDbClient()
+        public AwsDynamoDbService()
         {
             Client = new AmazonDynamoDBClient();
         }
@@ -46,11 +43,7 @@ namespace speed_test
             Console.WriteLine($"Table {tableName} does not exist. Creating one...");
             CreateTableRequest request = CreateTableRequest(tableName);
             Client.CreateTableAsync(request).Wait();
-        }
-
-        public TableDescription DescribeTable(string tableName)
-        {
-            return Client.DescribeTableAsync(tableName).Result.Table;
+            WaitForTableToActivate(tableName);
         }
 
         public void PutItem(string tableName, string machineId, string speedTestOutput)
@@ -120,10 +113,24 @@ namespace speed_test
             return request;
         }
 
+        private TableDescription DescribeTable(string tableName)
+        {
+            return Client.DescribeTableAsync(tableName).Result.Table;
+        }
+
         private bool DoesTableExist(string tableName)
         {
             ListTablesResponse response = Client.ListTablesAsync().Result;
             return response.TableNames.Any(tn => tn == tableName);
+        }
+
+        private void WaitForTableToActivate(string tableName)
+        {
+            while (DescribeTable(tableName).TableStatus != TableStatus.ACTIVE)
+            {
+                Console.WriteLine($"Waiting for the table {tableName} to activate...");
+                Thread.Sleep(5000);
+            }
         }
 
         #endregion

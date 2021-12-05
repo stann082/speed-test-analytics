@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "app": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "SpeedTestFilePath": "%APPDATA%\\SpeedTest\\speedtest.exe"
+      }
+    }
+  }
+}
