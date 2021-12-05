@@ -11,6 +11,7 @@ namespace speed_test
 
         #region Constants
 
+        private const string SPEED_TEST_FILE_PATH = "SpeedTestFilePath";
         private const string TABLE_NAME = "SpeedTestAnalytics";
 
         #endregion
@@ -75,14 +76,7 @@ namespace speed_test
 
         private string GetSpeedTestFilePath()
         {
-            string configValue = Config.GetSection("SpeedTestFilePath").Value;
-            if (string.IsNullOrEmpty(configValue))
-            {
-                // TODO: Log error
-                return string.Empty;
-            }
-
-            string filePath = Environment.ExpandEnvironmentVariables(configValue);
+            string filePath = Environment.GetEnvironmentVariable(SPEED_TEST_FILE_PATH);
             if (!File.Exists(filePath))
             {
                 // TODO: Log error
