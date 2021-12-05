@@ -4,7 +4,7 @@ function download_latest_package {
     $SPEED_TEST_MAIN_DIR = $args[0]
 
     echo "Locating the latest package to download..."
-    $WIN_DOWNLOAD_LINK = ((Invoke-WebRequest -Uri https://www.speedtest.net/apps/cli).Links | Where outerHTML -like "*Download for Windows*").href
+    $WIN_DOWNLOAD_LINK = ((Invoke-WebRequest -UseBasicParsing -Uri https://www.speedtest.net/apps/cli).Links | Where outerHTML -like "*Download for Windows*").href
     if (!$WIN_DOWNLOAD_LINK) {
         echo "Could not locate a download link. Please do it manually at https://www.speedtest.net/apps/cli"
         exit 1
