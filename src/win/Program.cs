@@ -50,7 +50,9 @@ namespace speed_test
                 return;
             }
 
+            Console.WriteLine($"Adding speed test result entry to the {TABLE_NAME} table...");
             client.PutItem(TABLE_NAME, machineId, process.StandardOutput);
+            Console.WriteLine("An entry had been successfully added!");
         }
 
         #endregion
