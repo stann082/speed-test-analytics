@@ -19,9 +19,9 @@ namespace speed_test
                 ServiceProvider serviceProvider = services.BuildServiceProvider();
                 serviceProvider.GetService<Application>().Run();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Console.WriteLine("An un expected error has occurred...");
+                Console.WriteLine($"An un expected error has occurred...{Environment.NewLine}{ex}");
             }
         }
 
@@ -45,6 +45,7 @@ namespace speed_test
             IConfiguration config = LoadConfiguration();
             services.AddSingleton(config);
             services.AddTransient<IAwsDynamoDbService, AwsDynamoDbService>();
+            services.AddTransient<IProcessService, ProcessService>();
             services.AddTransient<Application>();
 
             return services;

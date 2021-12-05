@@ -43,11 +43,7 @@ namespace service
             Console.WriteLine($"Table {tableName} does not exist. Creating one...");
             CreateTableRequest request = CreateTableRequest(tableName);
             Client.CreateTableAsync(request).Wait();
-        }
-
-        public TableDescription DescribeTable(string tableName)
-        {
-            return Client.DescribeTableAsync(tableName).Result.Table;
+            WaitForTableToActivate(tableName);
         }
 
         public void PutItem(string tableName, string machineId, string speedTestOutput)
@@ -117,10 +113,24 @@ namespace service
             return request;
         }
 
+        private TableDescription DescribeTable(string tableName)
+        {
+            return Client.DescribeTableAsync(tableName).Result.Table;
+        }
+
         private bool DoesTableExist(string tableName)
         {
             ListTablesResponse response = Client.ListTablesAsync().Result;
             return response.TableNames.Any(tn => tn == tableName);
+        }
+
+        private void WaitForTableToActivate(string tableName)
+        {
+            while (DescribeTable(tableName).TableStatus != TableStatus.ACTIVE)
+            {
+                Console.WriteLine($"Waiting for the table {tableName} to activate...");
+                Thread.Sleep(5000);
+            }
         }
 
         #endregion

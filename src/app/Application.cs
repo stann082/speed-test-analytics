@@ -1,7 +1,8 @@
-﻿using service;
+using Microsoft.Extensions.Configuration;
+using service;
 using System;
 using System.IO;
-using System.Linq;
+using System.Text;
 
 namespace speed_test
 {
@@ -16,16 +17,20 @@ namespace speed_test
 
         #region Constructors
 
-        public Application(IAwsDynamoDbService dynamoDbService)
+        public Application(IConfiguration config, IAwsDynamoDbService dynamoDbService, IProcessService processService)
         {
+            Config = config;
             DynamoDbService = dynamoDbService;
+            ProcessService = processService;
         }
 
         #endregion
 
         #region Properties
 
+        private IConfiguration Config { get; set; }
         private IAwsDynamoDbService DynamoDbService { get; set; }
+        private IProcessService ProcessService { get; set; }
 
         #endregion
 
@@ -33,38 +38,25 @@ namespace speed_test
 
         public void Run()
         {
-            string speedTestFile = "speedtest.exe";
-            if (!File.Exists(speedTestFile))
+            string speedTestFile = GetSpeedTestFilePath();
+            if (string.IsNullOrEmpty(speedTestFile))
             {
                 return;
             }
 
             DynamoDbService.CreateTable(TABLE_NAME);
 
-            WaitForTableToActivate(DynamoDbService);
-
-            string arguments = "--format=json";
-            if (args.Length > 0)
-            {
-                string formatArgument = args.FirstOrDefault(a => a.Contains("--format"));
-                if (!string.IsNullOrEmpty(formatArgument))
-                {
-                    arguments = formatArgument;
-                }
-            }
-
             string machineId = $"{Environment.MachineName} ({Environment.OSVersion.Platform})";
             Console.WriteLine($"Running a speed test for {machineId}...");
-            ProcessRunnerService processService = new ProcessRunnerService(speedTestFile, arguments);
-            processService.Run();
-            if (string.IsNullOrEmpty(processService.StandardOutput))
+
+            if (!ProcessService.Run(speedTestFile, BuildArguments()))
             {
-                Console.WriteLine("Speed test process did not yield any results... Please check logs for details.");
+                Console.WriteLine("Speed test run failed... Please check logs for details.");
                 return;
             }
 
             Console.WriteLine($"Adding speed test result entry to the {TABLE_NAME} table...");
-            DynamoDbService.PutItem(TABLE_NAME, machineId, processService.StandardOutput);
+            DynamoDbService.PutItem(TABLE_NAME, machineId, ProcessService.StandardOutput);
             Console.WriteLine("An entry had been successfully added!");
         }
 
@@ -72,13 +64,42 @@ namespace speed_test
 
         #region Helper Methods
 
-        private void WaitForTableToActivate(IAwsDynamoDbService service)
+        private string BuildArguments()
         {
-            while (service.DescribeTable(TABLE_NAME).TableStatus != TableStatus.ACTIVE)
+            StringBuilder sb = new StringBuilder();
+
+            string formatType = Config.GetSection("OutputFormat").Value;
+            sb.Append(IsValidFormatType(formatType) ? $"--format={formatType}" : "--format=json");
+            return sb.ToString();
+        }
+
+        private string GetSpeedTestFilePath()
+        {
+            string configValue = Config.GetSection("SpeedTestFilePath").Value;
+            if (string.IsNullOrEmpty(configValue))
             {
-                Console.WriteLine($"Waiting for the table {TABLE_NAME} to activate...");
-                Thread.Sleep(5000);
+                // TODO: Log error
+                return string.Empty;
             }
+
+            string filePath = Environment.ExpandEnvironmentVariables(configValue);
+            if (!File.Exists(filePath))
+            {
+                // TODO: Log error
+                return string.Empty;
+            }
+
+            return filePath;
+        }
+
+        private bool IsValidFormatType(string formatType)
+        {
+            if (!string.IsNullOrEmpty(formatType))
+            {
+                return false;
+            }
+
+            return formatType is "json" or "jsonl" or "json-pretty";
         }
 
         #endregion
