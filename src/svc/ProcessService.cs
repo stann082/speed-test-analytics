@@ -1,3 +1,4 @@
+using Serilog;
 using System.Diagnostics;
 
 namespace service
@@ -35,14 +36,14 @@ namespace service
                 using var process = Process.Start(psi);
                 if (process == null)
                 {
-                    // TODO: log error
+                    LogError("Something went wrong... Process did not start.");
                     return false;
                 }
 
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    // TODO: log error
+                    LogError($"Something went wrong... Process exited with code {process.ExitCode}.");
                     return false;
                 }
 
@@ -50,10 +51,26 @@ namespace service
                 StandardOutput = reader.ReadToEnd();
                 return !string.IsNullOrEmpty(StandardOutput);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // TODO: log exception
+                LogError($"An error has occurred during speed test run.", ex);
                 return false;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private static void LogError(string message, Exception? exception = null)
+        {
+            if (exception != null)
+            {
+                Log.Error(exception, message);
+            }
+            else
+            {
+                Log.Error(message);
             }
         }
 

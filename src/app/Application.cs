@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using service;
 using System;
 using System.IO;
@@ -48,17 +49,17 @@ namespace speed_test
             DynamoDbService.CreateTable(TABLE_NAME);
 
             string machineId = $"{Environment.MachineName} ({Environment.OSVersion.Platform})";
-            Console.WriteLine($"Running a speed test for {machineId}...");
+            Log.Information($"Running a speed test for {machineId}...");
 
             if (!ProcessService.Run(speedTestFile, BuildArguments()))
             {
-                Console.WriteLine("Speed test run failed... Please check logs for details.");
+                Log.Information("Speed test run failed... Please check logs for details.");
                 return;
             }
 
-            Console.WriteLine($"Adding speed test result entry to the {TABLE_NAME} table...");
+            Log.Information($"Adding speed test result entry to the {TABLE_NAME} table...");
             DynamoDbService.PutItem(TABLE_NAME, machineId, ProcessService.StandardOutput);
-            Console.WriteLine("An entry had been successfully added!");
+            Log.Information("An entry had been successfully added!");
         }
 
         #endregion
@@ -74,41 +75,18 @@ namespace speed_test
             return sb.ToString();
         }
 
-        private string GetEnvironmentVariable(string environmentVariableKey)
-        {
-            string environmentVariable = Environment.GetEnvironmentVariable(environmentVariableKey, EnvironmentVariableTarget.Machine);
-            if (!string.IsNullOrEmpty(environmentVariable))
-            {
-                return environmentVariable;
-            }
-
-            environmentVariable = Environment.GetEnvironmentVariable(environmentVariableKey, EnvironmentVariableTarget.User);
-            if (!string.IsNullOrEmpty(environmentVariable))
-            {
-                return environmentVariable;
-            }
-
-            environmentVariable = Environment.GetEnvironmentVariable(environmentVariableKey, EnvironmentVariableTarget.Process);
-            if (!string.IsNullOrEmpty(environmentVariable))
-            {
-                return environmentVariable;
-            }
-
-            return string.Empty;
-        }
-
         private string GetSpeedTestFilePath()
         {
-            string filePath = GetEnvironmentVariable(SPEED_TEST_FILE_PATH);
-            if (!string.IsNullOrEmpty(filePath))
+            string filePath = EnvironmentVariableProvider.GetEnvironmentVariable(SPEED_TEST_FILE_PATH);
+            if (string.IsNullOrEmpty(filePath))
             {
-                Console.WriteLine($"Environment variable {SPEED_TEST_FILE_PATH} not set.");
+                Log.Information($"Environment variable {SPEED_TEST_FILE_PATH} not set.");
                 return string.Empty;
             }
 
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"File {filePath} does not exist.");
+                Log.Information($"File {filePath} does not exist.");
                 return string.Empty;
             }
 
