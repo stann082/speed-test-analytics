@@ -55,8 +55,7 @@ namespace speed_test
 
         private static string GetNewRelicApiKey()
         {
-            string v = EnvironmentVariableProvider.GetEnvironmentVariable("NewRelicApiKey");
-            return v;
+            return EnvironmentVariableProvider.GetEnvironmentVariable("NewRelicApiKey");
         }
 
         private static IConfiguration LoadConfiguration()
