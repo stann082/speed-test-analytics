@@ -60,8 +60,7 @@ namespace speed_test
             }
 
             SpeedTestResult result = CreateSpeedTestResult(ProcessService.StandardOutput);
-            Log.Information("The test result has completed:");
-            Log.Information("{@SpeedTestResult}", result);
+            Log.Information("The test result is: {@SpeedTestResult}", result);
 
             Log.Information($"Adding speed test result entry to the {TABLE_NAME} table...");
             DynamoDbService.PutItem(TABLE_NAME, machineId, ProcessService.StandardOutput);
