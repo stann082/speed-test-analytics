@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using service;
 using System;
 using System.IO;
@@ -21,7 +22,11 @@ namespace speed_test
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An un expected error has occurred...{Environment.NewLine}{ex}");
+                Log.Logger.Error(ex, "An un expected error has occurred...");
+            }
+            finally
+            {
+                Log.CloseAndFlush();
             }
         }
 
@@ -29,26 +34,38 @@ namespace speed_test
 
         #region Helper Methods
 
-        public static IConfiguration LoadConfiguration()
-        {
-            IConfigurationBuilder builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-
-            return builder.Build();
-        }
-
         private static IServiceCollection ConfigureServices()
         {
             IServiceCollection services = new ServiceCollection();
 
             IConfiguration config = LoadConfiguration();
+
+            LoggerConfiguration loggerConfiguration = new LoggerConfiguration();
+            loggerConfiguration.ReadFrom.Configuration(config);
+            loggerConfiguration.WriteTo.NewRelicLogs(applicationName: "Speed Test", licenseKey: GetNewRelicApiKey());
+            Log.Logger = loggerConfiguration.CreateLogger();
+
             services.AddSingleton(config);
             services.AddTransient<IAwsDynamoDbService, AwsDynamoDbService>();
             services.AddTransient<IProcessService, ProcessService>();
             services.AddTransient<Application>();
 
             return services;
+        }
+
+        private static string GetNewRelicApiKey()
+        {
+            string v = EnvironmentVariableProvider.GetEnvironmentVariable("NewRelicApiKey");
+            return v;
+        }
+
+        private static IConfiguration LoadConfiguration()
+        {
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            return builder.Build();
         }
 
         #endregion

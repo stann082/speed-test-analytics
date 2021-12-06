@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
+using Serilog;
 using System.Globalization;
 
 namespace service
@@ -40,7 +41,7 @@ namespace service
                 return;
             }
 
-            Console.WriteLine($"Table {tableName} does not exist. Creating one...");
+            Log.Information($"Table {tableName} does not exist. Creating one...");
             CreateTableRequest request = CreateTableRequest(tableName);
             Client.CreateTableAsync(request).Wait();
             WaitForTableToActivate(tableName);
@@ -128,7 +129,7 @@ namespace service
         {
             while (DescribeTable(tableName).TableStatus != TableStatus.ACTIVE)
             {
-                Console.WriteLine($"Waiting for the table {tableName} to activate...");
+                Log.Information($"Waiting for the table {tableName} to activate...");
                 Thread.Sleep(5000);
             }
         }
