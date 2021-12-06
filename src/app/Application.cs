@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog;
 using service;
 using System;
@@ -57,9 +59,12 @@ namespace speed_test
                 return;
             }
 
+            SpeedTestResult result = CreateSpeedTestResult(ProcessService.StandardOutput);
+            Log.Information("The test result has completed:");
+            Log.Information("{@SpeedTestResult}", result);
+
             Log.Information($"Adding speed test result entry to the {TABLE_NAME} table...");
             DynamoDbService.PutItem(TABLE_NAME, machineId, ProcessService.StandardOutput);
-            Log.Information("An entry had been successfully added!");
         }
 
         #endregion
@@ -75,6 +80,19 @@ namespace speed_test
             return sb.ToString();
         }
 
+        private SpeedTestResult CreateSpeedTestResult(string output)
+        {
+            var parsedObject = JObject.Parse(output);
+
+            string downloadDataJson = parsedObject["download"].ToString();
+            SpeedTestResponseData downloadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(downloadDataJson);
+
+            string uploadDataJson = parsedObject["upload"].ToString();
+            SpeedTestResponseData uploadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(uploadDataJson);
+
+            return new SpeedTestResult(downloadData, uploadData);
+        }
+
         private string GetSpeedTestFilePath()
         {
             string filePath = EnvironmentVariableProvider.GetEnvironmentVariable(SPEED_TEST_FILE_PATH);
@@ -83,6 +101,8 @@ namespace speed_test
                 Log.Information($"Environment variable {SPEED_TEST_FILE_PATH} not set.");
                 return string.Empty;
             }
+
+            filePath = Environment.ExpandEnvironmentVariables(filePath);
 
             if (!File.Exists(filePath))
             {
