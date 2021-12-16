@@ -12,6 +12,7 @@ public class Worker : BackgroundService
 
     #region Constants
 
+    private const int DEFAULT_RUN_TIME_FREQUENCY = 60;
     private const string SPEED_TEST_FILE_NAME = "speedtest.exe";
     private const string SPEED_TEST_FILE_PATH_ENV_VAR = "SpeedTestFilePath";
     private const string TABLE_NAME = "SpeedTestAnalytics";
@@ -44,7 +45,7 @@ public class Worker : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             RunSpeedTest();
-            await Task.Delay(1000 * 3600, stoppingToken);
+            await Task.Delay(1000 * 60 * GetRunFrequencyMinutes(), stoppingToken);
         }
     }
 
@@ -72,6 +73,12 @@ public class Worker : BackgroundService
         SpeedTestResponseData uploadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(uploadDataJson);
 
         return new SpeedTestResult(downloadData, uploadData);
+    }
+
+    private int GetRunFrequencyMinutes()
+    {
+        string minutesValue = _config.GetSection("RunFrequencyMinutes").Value;
+        return int.TryParse(minutesValue, out int minutes) ? minutes : DEFAULT_RUN_TIME_FREQUENCY;
     }
 
     private string GetSpeedTestFilePath()
