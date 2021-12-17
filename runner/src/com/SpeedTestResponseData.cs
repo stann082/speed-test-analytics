@@ -2,7 +2,7 @@
 
 namespace domain
 {
-    public class SpeedTestResponseData
+    public class SpeedTestResponseData : ISpeedTestResponseData
     {
 
         [JsonProperty("bandwidth")]

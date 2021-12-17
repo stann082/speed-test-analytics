@@ -1,11 +1,11 @@
 namespace domain
 {
-    public class SpeedTestResult
+    public class SpeedTestResult : ISpeedTestResult
     {
 
         #region Constructors
 
-        public SpeedTestResult(SpeedTestResponseData downloadData, SpeedTestResponseData uploadData)
+        public SpeedTestResult(ISpeedTestResponseData downloadData, ISpeedTestResponseData uploadData)
         {
             DownloadBytes = ConvertToHumanReadableFormat(downloadData.Bytes);
             DownloadSpeed = ConvertToHumanReadableFormat(downloadData.Bandwidth, true);

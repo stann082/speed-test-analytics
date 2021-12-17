@@ -12,7 +12,6 @@ public class Worker : BackgroundService
 
     #region Constants
 
-    private const int DEFAULT_RUN_TIME_FREQUENCY = 60;
     private const string SPEED_TEST_FILE_NAME = "speedtest.exe";
     private const string SPEED_TEST_FILE_PATH_ENV_VAR = "SpeedTestFilePath";
     private const string TABLE_NAME = "SpeedTestAnalytics";
@@ -42,10 +41,11 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        int milliSecondsDelay = ParseRunFrequency();
         while (!stoppingToken.IsCancellationRequested)
         {
             RunSpeedTest();
-            await Task.Delay(1000 * 60 * GetRunFrequencyMinutes(), stoppingToken);
+            await Task.Delay(milliSecondsDelay, stoppingToken);
         }
     }
 
@@ -62,23 +62,29 @@ public class Worker : BackgroundService
         return sb.ToString();
     }
 
-    private SpeedTestResult CreateSpeedTestResult(string output)
+    private ISpeedTestResult CreateSpeedTestResult(string output)
     {
-        var parsedObject = JObject.Parse(output);
+        JObject parsedObject = JObject.Parse(output);
+        if (parsedObject == null)
+        {
+            return NullSpeedTestResult.Singleton;
+        }
 
-        string downloadDataJson = parsedObject["download"].ToString();
-        SpeedTestResponseData downloadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(downloadDataJson);
-
-        string uploadDataJson = parsedObject["upload"].ToString();
-        SpeedTestResponseData uploadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(uploadDataJson);
-
+        ISpeedTestResponseData downloadData = DeserializeResponseObject(parsedObject["download"]);
+        ISpeedTestResponseData uploadData = DeserializeResponseObject(parsedObject["upload"]);
         return new SpeedTestResult(downloadData, uploadData);
     }
 
-    private int GetRunFrequencyMinutes()
+    private ISpeedTestResponseData DeserializeResponseObject(JToken jsonToken)
     {
-        string minutesValue = _config.GetSection("RunFrequencyMinutes").Value;
-        return int.TryParse(minutesValue, out int minutes) ? minutes : DEFAULT_RUN_TIME_FREQUENCY;
+        string dataJson = jsonToken.ToString();
+        if (string.IsNullOrEmpty(dataJson))
+        {
+            return NullSpeedTestResponseData.Singleton;
+        }
+
+        SpeedTestResponseData downloadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(dataJson);
+        return downloadData ?? NullSpeedTestResponseData.Singleton;
     }
 
     private string GetSpeedTestFilePath()
@@ -117,6 +123,12 @@ public class Worker : BackgroundService
         return formatType is "json" or "jsonl" or "json-pretty";
     }
 
+    private int ParseRunFrequency()
+    {
+        string rawValue = _config.GetSection("RunFrequency").Value;
+        return !string.IsNullOrEmpty(rawValue) ? new RunFrequencyParser().Parse(rawValue) : RunFrequencyParser.DEFAULT_RUN_TIME_MILLISECONDS;
+    }
+
     private void RunSpeedTest()
     {
         string speedTestFile = GetSpeedTestFilePath();
@@ -136,7 +148,7 @@ public class Worker : BackgroundService
             return;
         }
 
-        SpeedTestResult result = CreateSpeedTestResult(_processService.StandardOutput);
+        ISpeedTestResult result = CreateSpeedTestResult(_processService.StandardOutput);
         Log.Information("The test result is: {@SpeedTestResult}", result);
 
         Log.Information($"Adding speed test result entry to the {TABLE_NAME} table...");
