@@ -5,9 +5,14 @@
 
         #region Public Methods
 
-        public static string GetEnvironmentVariable(string environmentVariableKey)
+        public static string GetEnvironmentVariable(string? environmentVariableKey)
         {
-            string environmentVariable = Environment.GetEnvironmentVariable(environmentVariableKey, EnvironmentVariableTarget.Machine);
+            if (string.IsNullOrEmpty(environmentVariableKey))
+            {
+                return string.Empty;
+            }
+
+            string? environmentVariable = Environment.GetEnvironmentVariable(environmentVariableKey, EnvironmentVariableTarget.Machine);
             if (!string.IsNullOrEmpty(environmentVariable))
             {
                 return environmentVariable;

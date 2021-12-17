@@ -64,7 +64,7 @@ public class Worker : BackgroundService
 
     private ISpeedTestResult CreateSpeedTestResult(string output)
     {
-        JObject parsedObject = JObject.Parse(output);
+        JObject? parsedObject = JObject.Parse(output);
         if (parsedObject == null)
         {
             return NullSpeedTestResult.Singleton;
@@ -75,15 +75,15 @@ public class Worker : BackgroundService
         return new SpeedTestResult(downloadData, uploadData);
     }
 
-    private ISpeedTestResponseData DeserializeResponseObject(JToken jsonToken)
+    private ISpeedTestResponseData DeserializeResponseObject(JToken? jsonToken)
     {
-        string dataJson = jsonToken.ToString();
+        string dataJson = jsonToken != null ? jsonToken.ToString() : string.Empty;
         if (string.IsNullOrEmpty(dataJson))
         {
             return NullSpeedTestResponseData.Singleton;
         }
 
-        SpeedTestResponseData downloadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(dataJson);
+        SpeedTestResponseData? downloadData = JsonConvert.DeserializeObject<SpeedTestResponseData>(dataJson);
         return downloadData ?? NullSpeedTestResponseData.Singleton;
     }
 
