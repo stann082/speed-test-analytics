@@ -45,4 +45,6 @@ Remove-Item -Path $DST_APP_DIR -Recurse -Force
 Write-Output "Publishing the app to $DST_APP_DIR..."
 dotnet publish $SRC_APP_DIR -o $DST_APP_DIR -c Release
 
+Get-ChildItem -Path $DST_APP_DIR -Include "*.pdb" -Recurse | Remove-Item -Force
+
 $ProgressPreference = 'Continue' 
