@@ -2,6 +2,7 @@ package main
 
 //region imports
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -24,11 +25,22 @@ const (
 
 //endregion
 
+//region structs
+
+type Result struct {
+	Bandwidth int32 `json:"bandwidth"`
+	Bytes     int32 `json:"bytes"`
+	Elapsed   int32 `json:"elapsed"`
+}
+
+//endregion
+
 //region main function
 
 func main() {
 	var cfg m.Config
 	configure.Initialize(&cfg)
+	dyndbsvc.InitializeAwsClient()
 
 	speedTestFilePath := getSpeedTestFilePath()
 	if speedTestFilePath == "" {
@@ -43,9 +55,13 @@ func main() {
 
 	stdout := runProcess(speedTestFilePath, cfg.Output.Format)
 	if stdout == "" {
-		log.Println("speed test failed")
+		log.Println("Speed test failed")
 		return
 	}
+
+	log.Printf("\t\tBytes\tSpeed\t\tTime\n")
+	printTestResult(stdout, "download")
+	printTestResult(stdout, "upload")
 
 	dyndbsvc.PutItem(tableName, machineId, stdout)
 }
@@ -54,10 +70,53 @@ func main() {
 
 //region helper functions
 
+func printTestResult(stdout string, testOperation string) {
+	var m map[string]json.RawMessage
+	err := json.Unmarshal([]byte(stdout), &m)
+	if err != nil {
+		log.Fatalf("Failed to parse json output: %v\n", err)
+	}
+
+	var result Result
+	if eventRaw, ok := m[testOperation]; ok {
+		if err := json.Unmarshal(eventRaw, &result); err != nil {
+			log.Fatalf("Error parsing JSON output: %v\n", err)
+		}
+	} else {
+		log.Fatalf("Can't find '%s' key in JSON: %v\n", testOperation, err)
+	}
+
+	bytes := formatTestResultData(result.Bytes, false)
+	speed := formatTestResultData(result.Bandwidth, true)
+	time := fmt.Sprintf("%d secs", result.Elapsed/1000)
+	log.Printf("%s:\t%s\t%s\t%s\n", testOperation, bytes, speed, time)
+}
+
+func formatTestResultData(size int32, useBits bool) string {
+	var sizes [4]string
+	if useBits {
+		sizes = [4]string{"Bit", "KBit", "MBit", "GBit"}
+	} else {
+		sizes = [4]string{"B", "KB", "MB", "GB"}
+	}
+
+	order := 0
+	for size >= 1024 && order < len(sizes)-1 {
+		order++
+		size /= 1024
+	}
+
+	if useBits {
+		size *= 8
+	}
+
+	return fmt.Sprintf("%d %s", size, sizes[order])
+}
+
 func getMachineId() string {
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Printf("error getting a hostname: %v", err)
+		log.Printf("Error getting a hostname: %v", err)
 		return runtime.GOOS
 	}
 	return fmt.Sprintf("%s (%s)", hostname, runtime.GOOS)
