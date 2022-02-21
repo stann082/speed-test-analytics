@@ -28,9 +28,9 @@ const (
 //region structs
 
 type Result struct {
-	Bandwidth int32 `json:"bandwidth"`
-	Bytes     int32 `json:"bytes"`
-	Elapsed   int32 `json:"elapsed"`
+	Bandwidth float32 `json:"bandwidth"`
+	Bytes     float32 `json:"bytes"`
+	Elapsed   int32   `json:"elapsed"`
 }
 
 //endregion
@@ -59,10 +59,8 @@ func main() {
 		return
 	}
 
-	log.Printf("\t\tBytes\tSpeed\t\tTime\n")
 	printTestResult(stdout, "download")
 	printTestResult(stdout, "upload")
-
 	dyndbsvc.PutItem(tableName, machineId, stdout)
 }
 
@@ -86,13 +84,12 @@ func printTestResult(stdout string, testOperation string) {
 		log.Fatalf("Can't find '%s' key in JSON: %v\n", testOperation, err)
 	}
 
-	bytes := formatTestResultData(result.Bytes, false)
-	speed := formatTestResultData(result.Bandwidth, true)
-	time := fmt.Sprintf("%d secs", result.Elapsed/1000)
-	log.Printf("%s:\t%s\t%s\t%s\n", testOperation, bytes, speed, time)
+	log.Printf("%s size: %s\n", testOperation, formatTestResultData(result.Bytes, false))
+	log.Printf("%s speed: %s\n", testOperation, formatTestResultData(result.Bandwidth, true))
+	log.Printf("%s time: %s\n", testOperation, fmt.Sprintf("%d secs", result.Elapsed/1000))
 }
 
-func formatTestResultData(size int32, useBits bool) string {
+func formatTestResultData(size float32, useBits bool) string {
 	var sizes [4]string
 	if useBits {
 		sizes = [4]string{"Bit", "KBit", "MBit", "GBit"}
@@ -110,7 +107,7 @@ func formatTestResultData(size int32, useBits bool) string {
 		size *= 8
 	}
 
-	return fmt.Sprintf("%d %s", size, sizes[order])
+	return fmt.Sprintf("%.2f %s", size, sizes[order])
 }
 
 func getMachineId() string {
