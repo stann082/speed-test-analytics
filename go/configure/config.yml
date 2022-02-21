@@ -1,0 +1,8 @@
+output:
+  format: "json"
+
+log:
+  level: "warn"
+
+newrelic:
+  name: "Speed Test"
